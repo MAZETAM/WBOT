@@ -18,6 +18,8 @@ async function Main() {
     try {
         //console.log(configs);
         var page;
+        var QRattemps = 1;
+        var MaxQRattemps = 5;
         await downloadAndStartThings();
         var isLogin = await checkLogin();
         if (!isLogin) {
@@ -110,7 +112,8 @@ async function Main() {
     }
 
     async function injectScripts(page) {
-        return await page.waitForSelector('[data-icon=laptop]')
+        let timeoutWait = 20;
+        return await page.waitForSelector('[data-icon=laptop]',  { timeout: timeoutWait * 1000 })
             .then(async () => {
                 var filepath = path.join(__dirname, "WAPI.js");
                 await page.addScriptTag({ path: require.resolve(filepath) });
@@ -119,7 +122,7 @@ async function Main() {
                 return true;
             })
             .catch(() => {
-                console.log("User is not logged in. Waited 30 seconds.");
+                console.log("User is not logged in.\nWaited " + timeoutWait.toString() + " seconds - QR Attemps: " + QRattemps + "\n");
                 return false;
             })
     }
@@ -135,25 +138,41 @@ async function Main() {
             spinner.stop("Looks like you are already logged in");
             await injectScripts(page);
         } else {
-            spinner.info("You are not logged in. Please scan the QR below");
+            spinner.info("You are not logged in. Please scan the QR below\n");
         }
         return output;
     }
 
-    //TODO: add logic to refresh QR.
+    // Added logic to get refreshed QR.
     async function getAndShowQR() {
         //TODO: avoid using delay and make it in a way that it would react to the event. 
         //await utils.delay(10000);
         await page.waitForSelector("img[alt='Scan me!']");
         var imageData = await page.evaluate(`document.querySelector("img[alt='Scan me!']").parentElement.getAttribute("data-ref")`);
         //console.log(imageData);
+        console.log("QR Attemps: " + QRattemps + "--->\n");
         qrcode.generate(imageData, { small: true });
-        spinner.start("Waiting for scan \nKeep in mind that it will expire after few seconds");
+        spinner.start("Waiting for scan \nKeep in mind that it will expire after few seconds\n\n");
         var isLoggedIn = await injectScripts(page);
+        let lastImageData = imageData;
         while (!isLoggedIn) {
+            if (QRattemps >= MaxQRattemps){
+                console.error("Max ammount of QR refreshes reached, Finishing script...\n");
+                process.exit(1);
+            }
             //console.log("page is loading");
             //TODO: avoid using delay and make it in a way that it would react to the event. 
             await utils.delay(300);
+            try{
+                var imageData = await page.evaluate(`document.querySelector("img[alt='Scan me!']").parentElement.getAttribute("data-ref")`);
+                if (lastImageData != imageData){
+                    QRattemps++;
+                    console.log("QR Attemps: " + QRattemps + "--->\n");
+                    qrcode.generate(imageData, { small: true });
+                    spinner.start("Waiting for scan \nKeep in mind that it will expire after few seconds\n\n");
+                }
+            }catch(e){}
+            lastImageData = imageData;
             isLoggedIn = await injectScripts(page);
         }
         if (isLoggedIn) {
