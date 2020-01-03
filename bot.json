@@ -2,7 +2,7 @@
     "appconfig": {
         "headless": false,
         "isGroupReply":false,
-        "webhook":"https://lazy-cow-87.localtunnel.me/api/messages"
+        "webhook":"http://localhost:3001/api/messages"
     },
     "bot": [{
             "contains": [],

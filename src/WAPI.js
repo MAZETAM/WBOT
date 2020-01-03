@@ -600,7 +600,7 @@ window.WAPI.isLoggedIn = function (done) {
 };
 
 window.WAPI.isConnected = function (done) {
-    // Phone Disconnected icon appears when phone is disconnected from the tnternet
+    // Phone Disconnected icon appears when phone is disconnected from the internet
     const isConnected = document.querySelector('*[data-icon="alert-phone"]') !== null ? false : true;
 
     if (done !== undefined) done(isConnected);
